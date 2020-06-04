@@ -96,7 +96,7 @@
       <h1 data-toc-skip>Extracting and visualizing tidy draws from rethinking models</h1>
                         <h4 class="author">Matthew Kay</h4>
             
-            <h4 class="date">2020-06-02</h4>
+            <h4 class="date">2020-06-04</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mjskay/tidybayes.rethinking/blob/master/vignettes/tidy-rethinking.Rmd"><code>vignettes/tidy-rethinking.Rmd</code></a></small>
       <div class="hidden name"><code>tidy-rethinking.Rmd</code></div>
@@ -117,7 +117,7 @@ img {
 <h2 class="hasAnchor">
 <a href="#introduction" class="anchor"></a>Introduction</h2>
 <p>This vignette describes how to use the <code>tidybayes.rethinking</code> and <code>tidybayes</code> packages to extract <a href="http://dx.doi.org/10.18637/jss.v059.i10">tidy</a> data frames of draws from posterior distributions of model variables, fits, and predictions from models fit in Richard McElreath’s <a href="https://github.com/rmcelreath/rethinking"><code>rethinking</code> package</a>, the companion to <a href="https://xcelab.net/rm/statistical-rethinking/">Statistical Rethinking</a>.</p>
-<p>Because the <code>rethinking</code> package is not on CRAN, the code necessary to support that package is kept here, in the <code>tidybayes.rethinking</code> package. For a more general introduction to <code>tidybayes</code> and its use on general-purpose Bayesian modeling languages (like Stan and JAGS), see <code><a href="http://mjskay.github.io/tidybayes/articles/tidybayes.html">vignette(“tidybayes”, package = “tidybayes”)</a></code>.</p>
+<p>Because the <code>rethinking</code> package is not on CRAN, the code necessary to support that package is kept here, in the <code>tidybayes.rethinking</code> package. For a more general introduction to <code>tidybayes</code> and its use on general-purpose Bayesian modeling languages (like Stan and JAGS), see <code><a href="http://mjskay.github.io/tidybayes/articles/tidybayes.html">vignette("tidybayes", package = "tidybayes")</a></code>.</p>
 <p>While this vignette generally demonstrates use of tidybayes with models fit using <code><a href="https://rdrr.io/pkg/rethinking/man/ulam.html">rethinking::ulam()</a></code> (models fit using Stan), the same functions also work for other model types in the <code>rethinking</code> package, including <code><a href="https://rdrr.io/pkg/rethinking/man/quap.html">rethinking::quap()</a></code>, <code><a href="https://rdrr.io/pkg/rethinking/man/quap.html">rethinking::map()</a></code>, and <code><a href="https://rdrr.io/pkg/rethinking/man/map2stan.html">rethinking::map2stan()</a></code>. For <code><a href="https://rdrr.io/pkg/rethinking/man/quap.html">quap()</a></code> and <code><a href="https://purrr.tidyverse.org/reference/map.html">map()</a></code>, the tidybayes functions will generate draws from the approximate posterior for you. This makes it easy to move between model types without changing your workflow.</p>
 </div>
 <div id="setup" class="section level2">
@@ -182,7 +182,7 @@ img {
 <h2 class="hasAnchor">
 <a href="#model" class="anchor"></a>Model</h2>
 <p>Let’s fit a hierarchical linear regression model using Hamiltonian Monte Carlo (<code><a href="https://rdrr.io/pkg/rethinking/man/ulam.html">rethinking::ulam()</a></code>). Besides a typical multilevel model for the mean, this model also allows the standard deviation to vary by condition:</p>
-<div class="sourceCode" id="cb7"><html><body><pre class="r"><span class="no">m</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/pkg/rethinking/man/ulam.html">ulam</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/list.html">alist</a></span>(
+<div class="sourceCode" id="cb7"><html><body><pre class="r"><span class="no">m</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/rethinking/man/ulam.html">ulam</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/list.html">alist</a></span>(
     <span class="no">response</span> ~ <span class="fu">normal</span>(<span class="no">mu</span>, <span class="no">sigma</span>),
 
     <span class="co"># submodel for conditional mean</span>
@@ -221,7 +221,7 @@ img {
 ## sigma_intercept[5] -0.67    0.00 0.25 -1.09 -0.84 -0.69 -0.52 -0.12  3377    1
 ## lp__               -0.81    0.07 2.65 -6.93 -2.39 -0.39  1.15  3.22  1468    1
 ## 
-## Samples were drawn using NUTS(diag_e) at Tue Jun 02 11:56:26 2020.
+## Samples were drawn using NUTS(diag_e) at Thu Jun 04 01:13:13 2020.
 ## For each parameter, n_eff is a crude measure of effective sample size,
 ## and Rhat is the potential scale reduction factor on split chains (at 
 ## convergence, Rhat=1).</code></pre>
@@ -236,10 +236,10 @@ img {
 <p>Now that we have our results, the fun begins: getting the draws out in a tidy format! The default methods in <code>rethinking</code> for extracting draws from the model do so in a nested format:</p>
 <div class="sourceCode" id="cb10"><html><body><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/str.html">str</a></span>(<span class="kw pkg">rethinking</span><span class="kw ns">::</span><span class="fu"><a href="https://rdrr.io/pkg/rethinking/man/extract.samples.html">extract.samples</a></span>(<span class="no">m</span>))</pre></body></html></div>
 <pre><code>## List of 4
-##  $ intercept      : num [1:4000, 1:5] 0.0518 0.5825 0.0642 0.1052 0.1779 ...
-##  $ mu_condition   : num [1:4000(1d)] -0.2364 0.743 0.9528 0.0011 0.8269 ...
-##  $ tau_condition  : num [1:4000(1d)] 1.76 0.787 1.335 1.609 0.865 ...
-##  $ sigma_intercept: num [1:4000, 1:5] -1.057 -0.831 -0.971 -0.203 -1.048 ...
+##  $ intercept      : num [1:4000, 1:5] 0.272 0.159 0.145 0.133 0.175 ...
+##  $ mu_condition   : num [1:4000(1d)] 0.632 0.426 0.466 1.539 0.666 ...
+##  $ tau_condition  : num [1:4000(1d)] 1.452 1.785 0.872 1.137 1.158 ...
+##  $ sigma_intercept: num [1:4000, 1:5] -0.999 -1.035 -0.893 -0.68 -0.436 ...
 ##  - attr(*, "source")= chr "ulam posterior: 4000 samples from m"</code></pre>
 <p>The <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> function yields a common format for all model types supported by <code>tidybayes</code>. It lets us instead extract draws into a data frame in tidy format, with a <code>.chain</code> and <code>.iteration</code> column storing the chain and iteration for each row (if available—these columns are <code>NA</code> for <code><a href="https://rdrr.io/pkg/rethinking/man/quap.html">rethinking::quap()</a></code> and <code><a href="https://rdrr.io/pkg/rethinking/man/quap.html">rethinking::map()</a></code> models), a <code>.draw</code> column that uniquely indexes each draw, and the remaining columns corresponding to model variables or variable indices. The <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> function accepts any number of column specifications, which can include names for variables and names for variable indices. For example, we can extract the <code>intercept</code> variable as a tidy data frame, and put the value of its first (and only) index into the <code>condition</code> column, using a syntax that directly echoes how we would specify indices of the <code>intercept</code> variable in the model itself:</p>
 <div class="sourceCode" id="cb12"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
@@ -264,7 +264,7 @@ img {
 <h3 class="hasAnchor">
 <a href="#automatically-converting-columns-and-indices-back-into-their-original-data-types" class="anchor"></a>Automatically converting columns and indices back into their original data types</h3>
 <p>As-is, the resulting variables don’t know anything about where their indices came from. The index of the <code>intercept</code> variable was originally derived from the <code>condition</code> factor in the <code>ABC</code> data frame. But Stan doesn’t know this: it is just a numeric index to Stan, so the <code>condition</code> column just contains numbers (<code>1, 2, 3, 4, 5</code>) instead of the factor levels these numbers correspond to (<code>"A", "B", "C", "D", "E"</code>).</p>
-<p>We can recover this missing type information by passing the model through <code><a href="http://mjskay.github.io/tidybayes/reference/recover_types.html">recover_types()</a></code> before using <code>spread_draws</code>. In itself <code><a href="http://mjskay.github.io/tidybayes/reference/recover_types.html">recover_types()</a></code> just returns a copy of the model, with some additional attributes that store the type information from the data frame (or other objects) that you pass to it. This doesn’t have any useful effect by itself, but functions like <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> use this information to convert any column or index back into the data type of the column with the same name in the original data frame. In this example, <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> recognizes that the <code>condition</code> column was a factor with five levels (<code>"A", "B", "C", "D", "E"</code>) in the original data frame, and automatically converts it back into a factor:</p>
+<p>We can recover this missing type information by passing the model through <code><a href="http://mjskay.github.io/tidybayes/reference/recover_types.html">recover_types()</a></code> before using <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code>. In itself <code><a href="http://mjskay.github.io/tidybayes/reference/recover_types.html">recover_types()</a></code> just returns a copy of the model, with some additional attributes that store the type information from the data frame (or other objects) that you pass to it. This doesn’t have any useful effect by itself, but functions like <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> use this information to convert any column or index back into the data type of the column with the same name in the original data frame. In this example, <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws()</a></code> recognizes that the <code>condition</code> column was a factor with five levels (<code>"A", "B", "C", "D", "E"</code>) in the original data frame, and automatically converts it back into a factor:</p>
 <div class="sourceCode" id="cb14"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/recover_types.html">recover_types</a></span>(<span class="no">ABC</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
@@ -343,7 +343,7 @@ img {
 ##   &lt;chr&gt;          &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;    
 ## 1 mu_condition   0.614 -0.531   1.76   0.95 median qi       
 ## 2 tau_condition  1.08   0.596   2.44   0.95 median qi</code></pre>
-<p>For more on <code>gather_draws</code>, see <code><a href="http://mjskay.github.io/tidybayes/articles/tidybayes.html">vignette("tidybayes", package = "tidybayes")</a></code>.</p>
+<p>For more on <code><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">gather_draws()</a></code>, see <code><a href="http://mjskay.github.io/tidybayes/articles/tidybayes.html">vignette("tidybayes", package = "tidybayes")</a></code>.</p>
 </div>
 <div id="with-indexed-variables" class="section level3">
 <h3 class="hasAnchor">
@@ -379,58 +379,56 @@ img {
 <div id="plotting-points-and-intervals" class="section level2">
 <h2 class="hasAnchor">
 <a href="#plotting-points-and-intervals" class="anchor"></a>Plotting points and intervals</h2>
-<div id="using-geom_pointintervalgeom_pointintervalh" class="section level3">
+<div id="using-geom_pointinterval" class="section level3">
 <h3 class="hasAnchor">
-<a href="#using-geom_pointintervalgeom_pointintervalh" class="anchor"></a>Using <code>geom_pointinterval</code>/<code>geom_pointintervalh</code>
+<a href="#using-geom_pointinterval" class="anchor"></a>Using <code>geom_pointinterval</code>
 </h3>
-<p>Plotting medians and intervals is straightforward using the <code>pointinterval</code> geom (or its horizontal version, <code>pointintervalh</code>), which are similar to <code><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html">ggplot2::geom_pointrange()</a></code> but with sensible defaults for multiple intervals (functionality we will use later):</p>
+<p>Plotting medians and intervals is straightforward using <code><a href="http://mjskay.github.io/tidybayes/reference/geom_pointinterval.html">geom_pointinterval()</a></code>, which is similar to <code><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html">ggplot2::geom_pointrange()</a></code> but with sensible defaults for multiple intervals (functionality we will use later):</p>
 <div class="sourceCode" id="cb29"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/point_interval.html">median_qi</a></span>() <span class="kw">%&gt;%</span>
-  <span class="co"># `geom_pointintervalh` includes `xmin = .lower` and `xmax = .upper` in its default </span>
-  <span class="co"># aesthetics, so we can omit them here</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/geom_pointinterval.html">geom_pointintervalh</a></span>()</pre></body></html></div>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>, <span class="kw">xmin</span> <span class="kw">=</span> <span class="no">.lower</span>, <span class="kw">xmax</span> <span class="kw">=</span> <span class="no">.upper</span>)) +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/geom_pointinterval.html">geom_pointinterval</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-16-1.png" width="648"></p>
 </div>
-<div id="using-stat_pointintervalstat_pointintervalh" class="section level3">
+<div id="using-stat_pointinterval" class="section level3">
 <h3 class="hasAnchor">
-<a href="#using-stat_pointintervalstat_pointintervalh" class="anchor"></a>Using <code>stat_pointinterval</code>/<code>stat_pointintervalh</code>
+<a href="#using-stat_pointinterval" class="anchor"></a>Using <code>stat_pointinterval</code>
 </h3>
-<p>Rather than summarizing the posterior before calling ggplot, we could also use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval()</a></code> or <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh()</a></code> to perform the summary within ggplot:</p>
+<p>Rather than summarizing the posterior before calling ggplot, we could also use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval()</a></code> to perform the summary within ggplot:</p>
 <div class="sourceCode" id="cb30"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh</a></span>()</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-17-1.png" width="648"></p>
-<p>These functions have <code>.width = c(.66, .95)</code> by default (showing 66% and 95% intervals), but this can be changed by passing a <code>.width</code> argument to <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval()</a></code> / <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh()</a></code>.</p>
+<p>These functions have <code>.width = c(.66, .95)</code> by default (showing 66% and 95% intervals), but this can be changed by passing a <code>.width</code> argument to <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval()</a></code>.</p>
 </div>
-<div id="intervals-with-posterior-violins-eye-plots-stat_eye-and-stat_eyeh" class="section level3">
+<div id="intervals-with-posterior-violins-eye-plots-stat_eye" class="section level3">
 <h3 class="hasAnchor">
-<a href="#intervals-with-posterior-violins-eye-plots-stat_eye-and-stat_eyeh" class="anchor"></a>Intervals with posterior violins (“eye plots”): <code>stat_eye()</code> and <code>stat_eyeh()</code>
+<a href="#intervals-with-posterior-violins-eye-plots-stat_eye" class="anchor"></a>Intervals with posterior violins (“eye plots”): <code>stat_eye</code>
 </h3>
-<p>The <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_eye()</a></code> and <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_eyeh()</a></code> geoms provide a shortcut to generating “eye plots” (combinations of intervals and densities, drawn as violin plots):</p>
+<p>The <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_eye()</a></code> geom provides a shortcut to generating “eye plots” (combinations of intervals and densities, drawn as violin plots):</p>
 <div class="sourceCode" id="cb31"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_eyeh</a></span>()</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_eye</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-18-1.png" width="648"></p>
 </div>
-<div id="intervals-with-posterior-densities-half-eye-plots-stat_halfeyeh" class="section level3">
+<div id="intervals-with-posterior-densities-half-eye-plots-stat_halfeye" class="section level3">
 <h3 class="hasAnchor">
-<a href="#intervals-with-posterior-densities-half-eye-plots-stat_halfeyeh" class="anchor"></a>Intervals with posterior densities (“half-eye plots”): <code>stat_halfeyeh()</code>
+<a href="#intervals-with-posterior-densities-half-eye-plots-stat_halfeye" class="anchor"></a>Intervals with posterior densities (“half-eye plots”): <code>stat_halfeye</code>
 </h3>
-<p>If you prefer densities over violins, you can use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh()</a></code>. This example also demonstrates how to change the interval probability (here, to 90% and 50% intervals):</p>
+<p>If you prefer densities over violins, you can use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye()</a></code>. This example also demonstrates how to change the interval probability (here, to 90% and 50% intervals):</p>
 <div class="sourceCode" id="cb32"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.90</span>, <span class="fl">.5</span>))</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.90</span>, <span class="fl">.5</span>))</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-19-1.png" width="648"></p>
-<p>Or say you want to annotate portions of the densities in color; the <code>fill</code> aesthetic can vary within a slab in all geoms and stats in the <code><a href="http://mjskay.github.io/tidybayes/reference/geom_slabinterval.html">geom_slabinterval()</a></code> family, including <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh()</a></code>. For example, if you want to annotate a domain-specific region of practical equivalence (ROPE), you could do something like this:</p>
+<p>Or say you want to annotate portions of the densities in color; the <code>fill</code> aesthetic can vary within a slab in all geoms and stats in the <code><a href="http://mjskay.github.io/tidybayes/reference/geom_slabinterval.html">geom_slabinterval()</a></code> family, including <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye()</a></code>. For example, if you want to annotate a domain-specific region of practical equivalence (ROPE), you could do something like this:</p>
 <div class="sourceCode" id="cb33"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>), <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes_eval.html">stat</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">x</span>) <span class="kw">&lt;</span> <span class="fl">.8</span>))) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh</a></span>() +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye</a></span>() +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html">geom_vline</a></span>(<span class="kw">xintercept</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(-<span class="fl">.8</span>, <span class="fl">.8</span>), <span class="kw">linetype</span> <span class="kw">=</span> <span class="st">"dashed"</span>) +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html">scale_fill_manual</a></span>(<span class="kw">values</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"gray80"</span>, <span class="st">"skyblue"</span>))</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-20-1.png" width="648"></p>
@@ -447,11 +445,11 @@ img {
 <h3 class="hasAnchor">
 <a href="#plotting-posteriors-as-quantile-dotplots" class="anchor"></a>Plotting posteriors as quantile dotplots</h3>
 <p>Intervals are nice if the alpha level happens to line up with whatever decision you are trying to make, but getting a shape of the posterior is better (hence eye plots, above). On the other hand, making inferences from density plots is imprecise (estimating the area of one shape as a proportion of another is a hard perceptual task). Reasoning about probability in frequency formats is easier, motivating <a href="https://github.com/mjskay/when-ish-is-my-bus/blob/master/quantile-dotplots.md">quantile dotplots</a> (<a href="https://doi.org/10.1145/2858036.2858558">Kay et al. 2016</a>, <a href="https://doi.org/10.1145/3173574.3173718">Fernandes et al. 2018</a>), which also allow precise estimation of arbitrary intervals (down to the dot resolution of the plot, 100 in the example below).</p>
-<p>Within the slabinterval family of geoms in tidybayes is the <code>dots</code> and <code>dotsinterval</code> family, which automatically determine appropriate bin sizes for dotplots and can calculate quantiles from samples to construct quantile dotplots. <code><a href="http://mjskay.github.io/tidybayes/reference/geom_dotsinterval.html">stat_dotsh()</a></code> is the horizontal variant designed for use on samples:</p>
+<p>Within the slabinterval family of geoms in tidybayes is the <code>dots</code> and <code>dotsinterval</code> family, which automatically determine appropriate bin sizes for dotplots and can calculate quantiles from samples to construct quantile dotplots. <code><a href="http://mjskay.github.io/tidybayes/reference/geom_dotsinterval.html">stat_dots()</a></code> is the horizontal variant designed for use on samples:</p>
 <div class="sourceCode" id="cb34"><html><body><pre class="r"><span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>, <span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>))) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/geom_dotsinterval.html">stat_dotsh</a></span>(<span class="kw">quantiles</span> <span class="kw">=</span> <span class="fl">100</span>)</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/geom_dotsinterval.html">stat_dots</a></span>(<span class="kw">quantiles</span> <span class="kw">=</span> <span class="fl">100</span>)</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-21-1.png" width="648"></p>
 <p>The idea is to get away from thinking about the posterior as indicating one canonical point or interval, but instead to represent it as (say) 100 approximately equally likely points.</p>
 </div>
@@ -506,7 +504,7 @@ img {
 <div id="posterior-fits" class="section level2">
 <h2 class="hasAnchor">
 <a href="#posterior-fits" class="anchor"></a>Posterior fits</h2>
-<p>Rather than calculating conditional means manually from model parameters, we could use <code>add_fitted_draws</code>, which is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link</a></code> (giving posterior draws from the model’s linear predictor), but uses a tidy data format. We can combine it with <code><a href="https://modelr.tidyverse.org/reference/data_grid.html">modelr::data_grid</a></code> to first generate a grid describing the fits we want, then transform that grid into a long-format data frame of draws from posterior fits:</p>
+<p>Rather than calculating conditional means manually from model parameters, we could use <code><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws()</a></code>, which is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link</a></code> (giving posterior draws from the model’s linear predictor), but uses a tidy data format. We can combine it with <code><a href="https://modelr.tidyverse.org/reference/data_grid.html">modelr::data_grid</a></code> to first generate a grid describing the fits we want, then transform that grid into a long-format data frame of draws from posterior fits:</p>
 <div class="sourceCode" id="cb41"><html><body><pre class="r"><span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://modelr.tidyverse.org/reference/data_grid.html">data_grid</a></span>(<span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws</a></span>(<span class="no">m</span>) <span class="kw">%&gt;%</span>
@@ -515,42 +513,42 @@ img {
 ## # Groups:   condition, .row [1]
 ##    condition  .row .draw .value
 ##    &lt;fct&gt;     &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt;
-##  1 A             1   852 0.0518
-##  2 A             1   711 0.583 
-##  3 A             1   538 0.0642
-##  4 A             1    76 0.105 
-##  5 A             1   587 0.178 
-##  6 A             1   349 0.227 
-##  7 A             1   865 0.262 
-##  8 A             1   443 0.468 
-##  9 A             1   436 0.184 
-## 10 A             1   567 0.261</code></pre>
+##  1 A             1   391  0.272
+##  2 A             1    53  0.159
+##  3 A             1   736  0.145
+##  4 A             1   853  0.133
+##  5 A             1   740  0.175
+##  6 A             1   891  0.118
+##  7 A             1   648  0.238
+##  8 A             1    14  0.165
+##  9 A             1   658 -0.181
+## 10 A             1   500  0.268</code></pre>
 <p>This approach can be less error-prone if we change the parameterization of the model later, since <code>rethinking</code> will figure out how to calculate the linear predictor for us (rather than us having to do it manually, a calculation which changes depending on the model parameterization).</p>
-<p>Then we can plot the output with <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh()</a></code>:</p>
+<p>Then we can plot the output with <code><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval()</a></code>:</p>
 <div class="sourceCode" id="cb43"><html><body><pre class="r"><span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://modelr.tidyverse.org/reference/data_grid.html">data_grid</a></span>(<span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws</a></span>(<span class="no">m</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.value</span>, <span class="kw">y</span> <span class="kw">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_rev.html">fct_rev</a></span>(<span class="no">condition</span>))) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.66</span>, <span class="fl">.95</span>))</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.66</span>, <span class="fl">.95</span>))</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-26-1.png" width="648"></p>
 </div>
 <div id="posterior-predictions" class="section level2">
 <h2 class="hasAnchor">
 <a href="#posterior-predictions" class="anchor"></a>Posterior predictions</h2>
-<p>Where <code>add_fitted_draws</code> is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code>, <code>add_predicted_draws</code> is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/sim.html">rethinking::sim()</a></code>, giving draws from the posterior predictive distribution.</p>
-<p>Here is an example of posterior predictive distributions plotted using <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_slabh()</a></code>:</p>
+<p>Where <code><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws()</a></code> is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code>, <code><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_predicted_draws()</a></code> is analogous to <code><a href="https://rdrr.io/pkg/rethinking/man/sim.html">rethinking::sim()</a></code>, giving draws from the posterior predictive distribution.</p>
+<p>Here is an example of posterior predictive distributions plotted using <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_slab()</a></code>:</p>
 <div class="sourceCode" id="cb44"><html><body><pre class="r"><span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://modelr.tidyverse.org/reference/data_grid.html">data_grid</a></span>(<span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_predicted_draws</a></span>(<span class="no">m</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.prediction</span>, <span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_slabh</a></span>()</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_slab</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-27-1.png" width="648"></p>
-<p>We could also use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">tidybayes::stat_intervalh()</a></code> to plot predictive bands alongside the data:</p>
+<p>We could also use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">tidybayes::stat_interval()</a></code> to plot predictive bands alongside the data:</p>
 <div class="sourceCode" id="cb45"><html><body><pre class="r"><span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://modelr.tidyverse.org/reference/data_grid.html">data_grid</a></span>(<span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_predicted_draws</a></span>(<span class="no">m</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>, <span class="kw">x</span> <span class="kw">=</span> <span class="no">.prediction</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">stat_intervalh</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.50</span>, <span class="fl">.80</span>, <span class="fl">.95</span>, <span class="fl">.99</span>)) +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">stat_interval</a></span>(<span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.50</span>, <span class="fl">.80</span>, <span class="fl">.95</span>, <span class="fl">.99</span>)) +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">response</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">ABC</span>) +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html">scale_color_brewer</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-28-1.png" width="648"></p>
@@ -566,8 +564,8 @@ img {
 
 <span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>, <span class="kw">x</span> <span class="kw">=</span> <span class="no">response</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">stat_intervalh</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.prediction</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">preds</span>) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointintervalh</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.value</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">fits</span>, <span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.66</span>, <span class="fl">.95</span>), <span class="kw">position</span> <span class="kw">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_nudge.html">position_nudge</a></span>(<span class="kw">y</span> <span class="kw">=</span> -<span class="fl">0.3</span>)) +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_interval.html">stat_interval</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.prediction</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">preds</span>) +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_pointinterval.html">stat_pointinterval</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">.value</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">fits</span>, <span class="kw">.width</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">.66</span>, <span class="fl">.95</span>), <span class="kw">position</span> <span class="kw">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_nudge.html">position_nudge</a></span>(<span class="kw">y</span> <span class="kw">=</span> -<span class="fl">0.3</span>)) +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>() +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html">scale_color_brewer</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-29-1.png" width="648"></p>
@@ -576,13 +574,13 @@ img {
 <h2 class="hasAnchor">
 <a href="#posterior-predictions-kruschke-style" class="anchor"></a>Posterior predictions, Kruschke-style</h2>
 <p>The above approach to posterior predictions integrates over the parameter uncertainty to give a single posterior predictive distribution. Another approach, often used by John Kruschke in his book <a href="https://sites.google.com/site/doingbayesiandataanalysis/">Doing Bayesian Data Analysis</a>, is to attempt to show both the predictive uncertainty and the parameter uncertainty simultaneously by showing several possible predictive distributions implied by the posterior.</p>
-<p>We can do this pretty easily by asking for the distributional parameters for a given prediction implied by the posterior. These are the link-level linear predictors returned by <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code>; in <code>tidybayes</code> we follow the terminology of the <code>brms</code> package and calls these distributional regression parameters. In our model, these are the <code>mu</code> and <code>sigma</code> parameters. We can access these explicitly by setting <code>dpar = c("mu", "sigma")</code> in <code>add_fitted_draws</code>. Rather than specifying the parameters explicitly, you can also just set <code>dpar = TRUE</code> to get draws from all distributional parameters in a model. Then, we can select a small number of draws using <code>tidybyaes::sample_draws()</code> and then use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_dist_slabinterval.html">stat_dist_slabh()</a></code> to visualize each predictive distribution implied by the values of <code>mu</code> and <code>sigma</code>:</p>
+<p>We can do this pretty easily by asking for the distributional parameters for a given prediction implied by the posterior. These are the link-level linear predictors returned by <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code>; in <code>tidybayes</code> we follow the terminology of the <code>brms</code> package and calls these distributional regression parameters. In our model, these are the <code>mu</code> and <code>sigma</code> parameters. We can access these explicitly by setting <code>dpar = c("mu", "sigma")</code> in <code><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws()</a></code>. Rather than specifying the parameters explicitly, you can also just set <code>dpar = TRUE</code> to get draws from all distributional parameters in a model. Then, we can select a small number of draws using <code>tidybyaes::sample_draws()</code> and then use <code><a href="http://mjskay.github.io/tidybayes/reference/stat_dist_slabinterval.html">stat_dist_slab()</a></code> to visualize each predictive distribution implied by the values of <code>mu</code> and <code>sigma</code>:</p>
 <div class="sourceCode" id="cb47"><html><body><pre class="r"><span class="no">ABC</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://modelr.tidyverse.org/reference/data_grid.html">data_grid</a></span>(<span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws</a></span>(<span class="no">m</span>, <span class="kw">dpar</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"mu"</span>, <span class="st">"sigma"</span>)) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/sample_draws.html">sample_draws</a></span>(<span class="fl">30</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_dist_slabinterval.html">stat_dist_slabh</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">dist</span> <span class="kw">=</span> <span class="st">"norm"</span>, <span class="kw">arg1</span> <span class="kw">=</span> <span class="no">mu</span>, <span class="kw">arg2</span> <span class="kw">=</span> <span class="no">sigma</span>),
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_dist_slabinterval.html">stat_dist_slab</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">dist</span> <span class="kw">=</span> <span class="st">"norm"</span>, <span class="kw">arg1</span> <span class="kw">=</span> <span class="no">mu</span>, <span class="kw">arg2</span> <span class="kw">=</span> <span class="no">sigma</span>),
     <span class="kw">slab_color</span> <span class="kw">=</span> <span class="st">"gray65"</span>, <span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>/<span class="fl">10</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="fl">NA</span>
   ) +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">response</span>), <span class="kw">data</span> <span class="kw">=</span> <span class="no">ABC</span>, <span class="kw">shape</span> <span class="kw">=</span> <span class="fl">21</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="st">"#9ECAE1"</span>, <span class="kw">size</span> <span class="kw">=</span> <span class="fl">2</span>)</pre></body></html></div>
@@ -688,13 +686,13 @@ img {
 <h2 class="hasAnchor">
 <a href="#comparing-levels-of-a-factor" class="anchor"></a>Comparing levels of a factor</h2>
 <p>If we wish compare the means from each condition, <code><a href="http://mjskay.github.io/tidybayes/reference/compare_levels.html">tidybayes::compare_levels()</a></code> facilitates comparisons of the value of some variable across levels of a factor. By default it computes all pairwise differences.</p>
-<p>Let’s demonstrate <code><a href="http://mjskay.github.io/tidybayes/reference/compare_levels.html">tidybayes::compare_levels()</a></code> with another plotting geom, <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">tidybayes::stat_halfeyeh()</a></code>, which gives horizontal “half-eye” plots, combining intervals with a density plot:</p>
+<p>Let’s demonstrate <code><a href="http://mjskay.github.io/tidybayes/reference/compare_levels.html">tidybayes::compare_levels()</a></code> with another plotting geom, <code><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">tidybayes::stat_halfeye()</a></code>, which gives horizontal “half-eye” plots, combining intervals with a density plot:</p>
 <div class="sourceCode" id="cb56"><html><body><pre class="r"><span class="co">#N.B. the syntax for compare_levels is experimental and may change</span>
 <span class="no">m</span> <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/spread_draws.html">spread_draws</a></span>(<span class="no">intercept</span>[<span class="no">condition</span>]) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/compare_levels.html">compare_levels</a></span>(<span class="no">intercept</span>, <span class="kw">by</span> <span class="kw">=</span> <span class="no">condition</span>) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>, <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh</a></span>()</pre></body></html></div>
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye</a></span>()</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-38-1.png" width="648"></p>
 <p>If you prefer “caterpillar” plots, ordered by something like the mean of the difference, you can reorder the factor before plotting:</p>
 <div class="sourceCode" id="cb57"><html><body><pre class="r"><span class="co">#N.B. the syntax for compare_levels is experimental and may change</span>
@@ -704,14 +702,14 @@ img {
   <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html">ungroup</a></span>() <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span>(<span class="kw">condition</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/reorder.factor.html">reorder</a></span>(<span class="no">condition</span>, <span class="no">intercept</span>)) <span class="kw">%&gt;%</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">condition</span>, <span class="kw">x</span> <span class="kw">=</span> <span class="no">intercept</span>)) +
-  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeyeh</a></span>() +
+  <span class="fu"><a href="http://mjskay.github.io/tidybayes/reference/stat_sample_slabinterval.html">stat_halfeye</a></span>() +
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html">geom_vline</a></span>(<span class="kw">xintercept</span> <span class="kw">=</span> <span class="fl">0</span>, <span class="kw">linetype</span> <span class="kw">=</span> <span class="st">"dashed"</span>)</pre></body></html></div>
 <p><img src="tidy-rethinking_files/figure-html/unnamed-chunk-39-1.png" width="648"></p>
 </div>
 <div id="ordinal-models" class="section level2">
 <h2 class="hasAnchor">
 <a href="#ordinal-models" class="anchor"></a>Ordinal models</h2>
-<p>The <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code> function for ordinal models returns draws from the latent linear predictor (in contrast to the <code><a href="https://rdrr.io/pkg/brms/man/fitted.brmsfit.html">brms::fitted.brmsfit</a></code> function for ordinal and multinomial regression models in brms, which returns multiple variables for each draw: one for each outcome category, see the ordinal regression examples in <code><a href="http://mjskay.github.io/tidybayes/articles/tidy-brms.html">vignette("tidy-brms", package = "tidybayes")</a></code>). The philosophy of <code>tidybayes</code> is to tidy whatever format is output by a model, so in keeping with that philosophy, when applied to ordinal <code>rethinking</code> models, <code>add_fitted_draws</code> simply returns draws from the latent linear predictor. This means we have to do a bit more work to recover category probabilities.</p>
+<p>The <code><a href="https://rdrr.io/pkg/rethinking/man/link.html">rethinking::link()</a></code> function for ordinal models returns draws from the latent linear predictor (in contrast to the <code><a href="https://rdrr.io/pkg/brms/man/fitted.brmsfit.html">brms::fitted.brmsfit</a></code> function for ordinal and multinomial regression models in brms, which returns multiple variables for each draw: one for each outcome category, see the ordinal regression examples in <code><a href="http://mjskay.github.io/tidybayes/articles/tidy-brms.html">vignette("tidy-brms", package = "tidybayes")</a></code>). The philosophy of <code>tidybayes</code> is to tidy whatever format is output by a model, so in keeping with that philosophy, when applied to ordinal <code>rethinking</code> models, <code><a href="http://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_fitted_draws()</a></code> simply returns draws from the latent linear predictor. This means we have to do a bit more work to recover category probabilities.</p>
 <div id="ordinal-model-with-continuous-predictor" class="section level3">
 <h3 class="hasAnchor">
 <a href="#ordinal-model-with-continuous-predictor" class="anchor"></a>Ordinal model with continuous predictor</h3>
@@ -779,9 +777,9 @@ Pr(Y = j) &amp;= Pr(Y \le j) - Pr(Y \le j - 1)\\
 <pre><code>## # A tibble: 3 x 10
 ##   cyl   cutpoint cutpoint.lower cutpoint.upper prev_cutpoint prev_cutpoint.l~
 ##   &lt;chr&gt;    &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;         &lt;dbl&gt;            &lt;dbl&gt;
-## 1 4        -24.3          -42.4          -13.3        -Inf             -Inf  
-## 2 6        -20.4          -36.2          -11.2         -24.3            -42.4
-## 3 8        Inf            Inf            Inf           -20.4            -36.2
+## 1 4        -24.4          -45.5          -13.7        -Inf             -Inf  
+## 2 6        -20.6          -39.3          -11.0         -24.4            -45.5
+## 3 8        Inf            Inf            Inf           -20.6            -39.3
 ## # ... with 4 more variables: prev_cutpoint.upper &lt;dbl&gt;, .width &lt;dbl&gt;,
 ## #   .point &lt;chr&gt;, .interval &lt;chr&gt;</code></pre>
 <p>Given the data frame of cutpoints and the latent linear predictor, we can more-or-less directly write the formula for the probability of each category conditional on mpg into our code:</p>
@@ -800,16 +798,16 @@ Pr(Y = j) &amp;= Pr(Y \le j) - Pr(Y \le j - 1)\\
 ## # Groups:   mpg, .row [1]
 ##      mpg  .row .draw .value cyl   cutpoint .chain .iteration prev_cutpoint
 ##    &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;    &lt;dbl&gt;  &lt;int&gt;      &lt;int&gt;         &lt;dbl&gt;
-##  1  10.4     1   587  -11.8 4        -25.2      1        587        -Inf  
-##  2  10.4     1   587  -11.8 6        -20.0      1        587         -25.2
-##  3  10.4     1   587  -11.8 8        Inf       NA         NA         -20.0
-##  4  10.4     1   142  -15.3 4        -30.7      1        142        -Inf  
-##  5  10.4     1   142  -15.3 6        -27.1      1        142         -30.7
-##  6  10.4     1   142  -15.3 8        Inf       NA         NA         -27.1
-##  7  10.4     1   223  -12.6 4        -25.9      1        223        -Inf  
-##  8  10.4     1   223  -12.6 6        -21.6      1        223         -25.9
-##  9  10.4     1   223  -12.6 8        Inf       NA         NA         -21.6
-## 10  10.4     1   491  -12.1 4        -25.2      1        491        -Inf  
+##  1  10.4     1   140  -7.99 4        -17.8      1        140        -Inf  
+##  2  10.4     1   140  -7.99 6        -13.3      1        140         -17.8
+##  3  10.4     1   140  -7.99 8        Inf       NA         NA         -13.3
+##  4  10.4     1   230 -12.6  4        -25.6      1        230        -Inf  
+##  5  10.4     1   230 -12.6  6        -21.4      1        230         -25.6
+##  6  10.4     1   230 -12.6  8        Inf       NA         NA         -21.4
+##  7  10.4     1   307 -11.7  4        -25.2      1        307        -Inf  
+##  8  10.4     1   307 -11.7  6        -21.2      1        307         -25.2
+##  9  10.4     1   307 -11.7  8        Inf       NA         NA         -21.2
+## 10  10.4     1   695 -15.1  4        -31.1      1        695        -Inf  
 ## # ... with 1 more variable: `P(cyl | mpg)` &lt;dbl&gt;</code></pre>
 <p>Then we can plot those probability curves against the datset:</p>
 <div class="sourceCode" id="cb66"><html><body><pre class="r"><span class="no">data_plot</span> <span class="kw">=</span> <span class="no">mtcars_clean</span> <span class="kw">%&gt;%</span>
